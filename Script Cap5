@@ -1,0 +1,117 @@
+#versão do R utilizada: 4.3.0
+#instalando os pacotes que vamos usar
+install.packages("sp")
+install.packages("dismo")
+install.packages("raster")
+install.packages("maptools")
+install.packages("rgeos")
+install.packages("sf")
+install.packages("ggplot2")
+install.packages("readxl")
+install.packages("rgbif")
+install.packages("dplyr")
+install.packages("rnaturalearth")
+#devtools::install_github("ropensci/rnaturalearth") #Se não conseguir instalar no passo
+anterior, retire o # e tente esse passo
+
+#abrindo os pacotes que vamos utilizar
+library(sp)
+library(raster)
+library(dismo)
+library(maptools)
+library(rgeos)
+library(sf)
+library(ggplot2)
+library(readxl)
+library(rnaturalearth)
+library(rgbif)
+library(dplyr)
+
+##Baixar coordenadas de distribuição da espécie de interesse #Primeira etapa
+
+#Insira o nome da espécie que deseja baixar as coordenadas geográficas
+sp_datos <- occ_search(scientificName = "Calydorea campestris", limit = 1000)
+
+# Ver as dimensões do objeto gerado (quantas linhas e colunas, por exemplo)
+sp_data <- sp_datos$data
+
+dim(sp_datos) #mostra as dimensões do objeto sp_datos
+
+names(sp_datos) #mostra o nome de cada coluna do objeto
+
+# Extraindo os dados da lista GBIF
+sp_datos_df <- as.data.frame(sp_datos$data)
+
+# Aplicando a manipulação de dados no data frame
+sp_p1 <- sp_datos_df %>% #Realizando algumas manipulações no data frame chamado
+sp_datos_df
+select(decimalLongitude, decimalLatitude, species) %>% #Apenas essas colunas
+(decimalLongitude, decimalLatitude, species) serão mantidas para as próximas
+operações.
+mutate(lat = decimalLatitude, lon = decimalLongitude) %>% #Aqui duas novas colunas
+são criadas: lat e lon. Elas recebem os valores das colunas decimalLatitude e
+decimalLongitude, respectivamente. Isso é feito para simplificar o acesso aos valores de
+latitude e longitude mais adiante.
+distinct() %>% #Esta função remove as linhas duplicadas, garantindo que cada
+combinação de latitude, longitude e espécie seja única.
+na.omit() %>% #Removendo valores ausentes.
+sf::st_as_sf(coords = c('decimalLongitude', 'decimalLatitude'), crs = "EPSG:4326")
+#Transformando o data frame em um objeto espacial. As colunas decimalLongitude e
+decimalLatitude são usadas como coordenadas espaciais, e o sistema de referência de
+coordenadas é definido como "EPSG:4326", que é o sistema de coordenadas geográficas
+padrão utilizado em dados de GPS (com base no WGS 84).
+
+#Exportar uma planilha excel com os dados de coordenadas
+
+#Extraindo a tabela de dados do objeto 'gbif'
+sp_datos_df <- as.data.frame(sp_datos$data)
+
+#Exportando o data frame sp_datos_df como um arquivo CSV para o local especificado,
+sem incluir os números das linhas no arquivo resultante.
+#Aqui os locais onde o arquivo será salvo deve ser alterado de acordo com o seu diretório
+write.csv(sp_datos_df, file = "C:/Users/tacia/OneDrive/Área de
+Trabalho/EBOOK_BIOINFO/Calydorea_campestris_GBIF.csv", row.names = FALSE)
+
+##Gerando o mapa de distribuição #Segunda etapa
+#abrindo o mapa mundial
+data(wrld_simpl)
+
+#plotando o mapa mundial
+plot(wrld_simpl)
+
+#abrindo o arquivo com os pontos
+#Aqui os locais onde o arquivo está devem ser alterados de acordo com o seu diretório,
+nesta função sp_dat refere-se ao nome que você irá atribuir ao arquivo que vai ser aberto,
+ou seja, a sua tabela de dados com as coordenadas.
+sp_dat <- read.csv("C:/Users/tacia/OneDrive/Área de
+Trabalho/EBOOK_BIOINFO/Calydorea_campestris_GBIF.csv")
+sp_dat2 <- read_excel("C:/Users/tacia/OneDrive/Área de
+Trabalho/EBOOK_BIOINFO/caly_speciesLink.xlsx")
+
+## ajustando o mapa
+#essa função serve para abrir o mapa em outra aba e definir o seu tamanho
+windows(width=6, height=6, rescale="fixed")
+
+#Cortando e plotando o mapa
+plot(wrld_simpl, xlim=c(-80, -45), ylim=c(-40, 15), axes=T, col="#779943") #Aqui
+estamos utilizando a função plot() para desenhar o mapa, sendo que o primeiro
+argumento, wrld_simpl, é o objeto do mapa que queremos visualizar. Os parâmetros 
+xlim e ylim definem os limites do gráfico nos eixos x (longitudes) e y (latitudes),
+respectivamente. O argumento axes=TRUE indica que os eixos de coordenadas devem
+ser exibidos. O parâmetro col="#779943" define a cor de preenchimento dos polígonos
+do mapa, onde o código "#779943" representa um tom específico de verde. Também
+podemos usar nomes de cores básicas, como 'grey' (cinza), ou outras opções disponíveis
+no R.
+
+# Plotando os pontos do sp_dat no mapa
+#Aqui col é a cor dos pontos, e pch é o tamanho
+points(sp_dat$decimalLongitude, sp_dat$decimalLatitude, pch = 20, col = "#1C4042")
+#aqui você pode escolher uma cor da sua preferência e mudar o código após a #
+
+# Plotando o conjunto de dados sp_dat2 #Atenção! Para plotar o segundo conjunto de
+dados, é necessário que você execute novamente a parte do código a partir da etapa
+“##ajustando o mapa”. Mas lembre-se de não executar a parte referente ao conjunto de
+dados sp_dat. Assim, os pontos não serão sobrepostos.
+# Plotando os pontos do sp_dat2 no mapa
+points(sp_dat2$longitude, sp_dat2$latitude, pch = 20, col = "#b30059") #aqui você pode
+escolher uma cor da sua preferência e mudar o código após a #
